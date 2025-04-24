@@ -1,25 +1,19 @@
 node {
     def app
+    def dockerHostIP = "192.168.77.2"  // IP de l’hôte Docker vue depuis Jenkins
 
     stage('Clone') {
-        // Clone le code source à partir de SCM
         checkout scm
     }
-    
+
     stage('Build image') {
-        // Build l'image Docker en utilisant le Dockerfile du répertoire actuel
         app = docker.build("xavki/nginx")
     }
-    
+
     stage('Run image') {
-        // Lance l'image Docker en exposant le port 80 sur le port 81 de la machine hôte
         docker.image('xavki/nginx').withRun('-p 81:80') { c ->
-            // Liste les containers en cours d'exécution
             sh 'docker ps'
-            
-            // Envoie une requête HTTP GET vers le serveur Nginx en cours d'exécution dans le container
-            sh 'curl localhost:81'
+            sh "curl http://${dockerHostIP}:81"
         }
     }
 }
-
