@@ -1,19 +1,25 @@
 node {
-    def app
-    def dockerHostIP = "192.168.77.2"  // IP de l’hôte Docker vue depuis Jenkins
+    def container
 
-    stage('Clone') {
-        checkout scm
+    stage('Build Docker Image') {
+        container = docker.build("mon-nginx-test")
     }
 
-    stage('Build image') {
-        app = docker.build("xavki/nginx")
-    }
-
-    stage('Run image') {
-        docker.image('xavki/nginx').withRun('-p 81:80') { c ->
+    stage('Run and Test Container') {
+        docker.image('mon-nginx-test').withRun('-d -P') { c ->
+            // Affiche les conteneurs en cours
             sh 'docker ps'
-            sh "curl http://${dockerHostIP}:81"
+
+            // Récupère l'adresse IP du conteneur
+            def ip = sh(
+                script: "docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' ${c.id}",
+                returnStdout: true
+            ).trim()
+
+            echo "IP du conteneur : ${ip}"
+
+            // Fait un curl sur le serveur nginx à l’intérieur du conteneur
+            sh "curl http://${ip}:80"
         }
     }
 }
